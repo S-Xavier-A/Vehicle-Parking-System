@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ParkVault — My Dashboard</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script>(function(){var t=localStorage.getItem('pv_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}());</script>
+</head>
+<body class="scrollable">
+  <div class="bg-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon"><span style="font-size:1.3rem;">🅿️</span></div>
+        <div class="brand-text">
+          <span class="brand-name">ParkVault</span>
+          <span class="brand-sub">User Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a href="/dashboard" class="nav-link active">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </a>
+        <a href="/search" class="nav-link">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Find Parking
+        </a>
+        <a href="/spots" class="nav-link">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          My Reservation
+          {% if active_res %}<span class="nav-badge">1</span>{% endif %}
+        </a>
+        <a href="/history" class="nav-link">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          History
+        </a>
+      </nav>
+
+      <!-- Theme Toggle -->
+      <div style="padding:12px 24px 0;">
+        <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
+          <span id="themeLabel">🌙 Dark Mode</span>
+          <div class="theme-track"><div class="theme-thumb" id="themeThumb"></div></div>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-pill">
+          <div class="avatar">{{ current_user.initials }}</div>
+          <div class="user-pill-text">
+            <div class="user-pill-name">{{ current_user.name }}</div>
+            <div class="user-pill-role">User · {{ current_user.vehicle }}</div>
+          </div>
+          <button class="logout-btn" title="Logout" onclick="window.location='/logout'">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Good morning, {{ current_user.first_name }} 👋</h1>
+          <p>{{ now.strftime('%A, %d %B %Y') }}</p>
+        </div>
+        <a href="/search" class="btn btn-primary">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Find Parking
+        </a>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon blue">🅿️</div>
+          <div class="stat-value">{{ total_res }}</div>
+          <div class="stat-label">Total Reservations</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-value">{{ 1 if active_res else 0 }}</div>
+          <div class="stat-label">Active Now</div>
+          <div class="stat-delta up">{% if active_res %}● Live since {{ active_res.check_in.strftime('%I:%M %p') }}{% else %}No active reservation{% endif %}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">💰</div>
+          <div class="stat-value">₹{{ "%.0f"|format(total_spent) }}</div>
+          <div class="stat-label">Total Spent</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon pink">⏱️</div>
+          <div class="stat-value">{{ total_res }}</div>
+          <div class="stat-label">Bookings Made</div>
+        </div>
+      </div>
+
+        <!-- Active Reservation -->
+        {% if active_res %}
+        <div class="glass-panel" style="border: 1px solid rgba(0,232,135,0.25); background: rgba(0,232,135,0.04);">
+          <div class="panel-header">
+            <span class="panel-title">🟢 Active Reservation</span>
+            <span class="badge available">LIVE</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:1.2rem; font-weight:700;">Spot {{ active_res.spot_number }}</div>
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">{{ active_res.lot.name }}</div>
+              </div>
+              <div style="font-size:2rem;">🚗</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05); border-radius:12px; padding:14px; display:flex; justify-content:space-between;">
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px;">Started</div>
+                <div style="font-weight:600; margin-top:2px;">{{ active_res.check_in.strftime('%I:%M %p') }}</div>
+              </div>
+              <div style="border-left:1px solid var(--glass-border); height:40px; align-self:center;"></div>
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px;">Duration</div>
+                {% set secs = (now - active_res.check_in).total_seconds()|int %}
+                <div style="font-weight:600; margin-top:2px;">{{ secs // 3600 }}h {{ (secs % 3600) // 60 }}m</div>
+              </div>
+              <div style="border-left:1px solid var(--glass-border); height:40px; align-self:center;"></div>
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px;">Est. Cost</div>
+                <div style="font-weight:700; color:#00e887; margin-top:2px;">₹{{ "%.2f"|format((secs / 3600) * active_res.lot.rate_per_hour) }}</div>
+              </div>
+            </div>
+            <button class="btn btn-danger" style="width:100%;" onclick="document.getElementById('releaseModal').style.display='flex'">
+              🔓 Release Spot
+            </button>
+          </div>
+        </div>
+        {% else %}
+        <div class="glass-panel" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; min-height:200px;">
+          <div style="font-size:2.5rem;">🅿️</div>
+          <div style="font-weight:600; font-size:1rem;">No Active Reservation</div>
+          <div style="font-size:0.8rem; color:var(--text-muted);">Find an available parking spot to get started</div>
+          <a href="/search" class="btn btn-primary" style="margin-top:4px;">Find Parking</a>
+        </div>
+        {% endif %}
+
+      <!-- Recent Reservations -->
+      <div class="glass-panel">
+        <div class="panel-header">
+          <span class="panel-title">Recent Reservations</span>
+          <a href="/history" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Lot / Spot</th>
+              <th>Date</th>
+              <th>Duration</th>
+              <th>Cost</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in recent_res %}
+            {% set rsecs = ((r.check_out or now) - r.check_in).total_seconds()|int %}
+            <tr>
+              <td>
+                <div style="font-weight:600;">{{ r.lot.name }}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">Spot {{ r.spot_number }}</div>
+              </td>
+              <td>{{ r.check_in.strftime('%d %b %Y') }}</td>
+              <td>
+                {% if r.status == 'active' %}{{ rsecs // 3600 }}h {{ (rsecs % 3600) // 60 }}m (live)
+                {% elif r.check_out %}{{ rsecs // 3600 }}h {{ (rsecs % 3600) // 60 }}m
+                {% else %}—{% endif %}
+              </td>
+              <td style="{% if r.status=='active' %}color:#00e887;{% endif %} font-weight:600;">
+                {% if r.cost %}₹{{ "%.2f"|format(r.cost) }}{% elif r.status=='active' %}₹{{ "%.2f"|format((rsecs/3600)*r.lot.rate_per_hour) }}{% else %}—{% endif %}
+              </td>
+              <td>
+                {% if r.status == 'active' %}<span class="badge available">Active</span>
+                {% elif r.status == 'completed' %}<span class="badge completed">Completed</span>
+                {% else %}<span class="badge occupied">Cancelled</span>{% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:24px;">No reservations yet. <a href="/search" style="color:var(--accent);">Find your first parking spot →</a></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Quick links -->
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+        <div class="glass-panel" style="margin-bottom:0; text-align:center; cursor:pointer;" onclick="window.location='/search'">
+          <div style="font-size:2rem; margin-bottom:8px;">🔍</div>
+          <div style="font-weight:600; font-size:0.9rem;">Find Parking</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Search by PIN or name</div>
+        </div>
+        <div class="glass-panel" style="margin-bottom:0; text-align:center; cursor:pointer;" onclick="window.location='/history'">
+          <div style="font-size:2rem; margin-bottom:8px;">📋</div>
+          <div style="font-weight:600; font-size:0.9rem;">Full History</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">All past reservations</div>
+        </div>
+        <div class="glass-panel" style="margin-bottom:0; text-align:center; cursor:pointer;">
+          <div style="font-size:2rem; margin-bottom:8px;">📧</div>
+          <div style="font-weight:600; font-size:0.9rem;">Daily Reminders</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Email alerts enabled</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Release Modal -->
+  {% if active_res %}
+  <div class="modal-overlay" id="releaseModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-title">Release Parking Spot?</div>
+      <div class="modal-subtitle">You are about to release Spot {{ active_res.spot_number }} at {{ active_res.lot.name }}</div>
+      <div style="background:rgba(255,255,255,0.04); border-radius:14px; padding:16px; margin-bottom:24px; display:flex; justify-content:space-between;">
+        {% set msecs = (now - active_res.check_in).total_seconds()|int %}
+        <div><div style="font-size:0.72rem;color:var(--text-muted);">Duration</div><div style="font-weight:700; margin-top:2px;">{{ msecs // 3600 }}h {{ (msecs % 3600) // 60 }}m</div></div>
+        <div><div style="font-size:0.72rem;color:var(--text-muted);">Rate</div><div style="font-weight:700; margin-top:2px;">₹{{ active_res.lot.rate_per_hour|int }}/hr</div></div>
+        <div><div style="font-size:0.72rem;color:var(--text-muted);">Total Due</div><div style="font-weight:700; color:var(--accent); margin-top:2px;">₹{{ "%.2f"|format((msecs/3600)*active_res.lot.rate_per_hour) }}</div></div>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('releaseModal').style.display='none'">Cancel</button>
+        <form action="/release" method="POST" style="flex:1;">
+          <input type="hidden" name="res_id" value="{{ active_res.id }}">
+          <button type="submit" class="btn btn-danger" style="width:100%;">Confirm Release</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <script>
+    function toggleTheme() {
+      var cur = document.documentElement.getAttribute('data-theme') || 'dark';
+      var nxt = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', nxt);
+      localStorage.setItem('pv_theme', nxt);
+      _syncTheme(nxt);
+    }
+    function _syncTheme(t) {
+      var label = document.getElementById('themeLabel');
+      var thumb = document.getElementById('themeThumb');
+      if (!label) return;
+      if (t === 'light') { label.textContent = '☀️ Light Mode'; thumb.style.transform = 'translateX(16px)'; }
+      else               { label.textContent = '🌙 Dark Mode';  thumb.style.transform = 'translateX(0)'; }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      _syncTheme(localStorage.getItem('pv_theme') || 'dark');
+    });
+  </script>
+</body>
+</html>
