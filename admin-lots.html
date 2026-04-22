@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ParkVault — Manage Lots</title>
+  <link rel="stylesheet" href="/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script>(function(){var t=localStorage.getItem('pv_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}());</script>
+</head>
+<body class="scrollable">
+  <div class="bg-grid"></div>
+  <div class="orb orb-1" style="background:radial-gradient(circle,#3b1acc,transparent 70%);"></div>
+  <div class="orb orb-2" style="background:radial-gradient(circle,#c864ff,transparent 70%);"></div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon"><span style="font-size:1.3rem;">🅿️</span></div>
+        <div class="brand-text">
+          <span class="brand-name">ParkVault</span>
+          <span class="brand-sub" style="color:#c864ff;">Admin Panel</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <a href="/admin" class="nav-link">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
+        </a>
+        <div class="nav-section-label">Management</div>
+        <a href="/admin/lots" class="nav-link active">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Parking Lots
+        </a>
+        <a href="/admin/users" class="nav-link">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Users
+        </a>
+        <a href="/admin/database" class="nav-link">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Database
+        </a>
+        <div class="nav-section-label">Analytics</div>
+        <a href="/admin/reports" class="nav-link">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports & Revenue
+        </a>
+      </nav>
+      <!-- Theme Toggle -->
+      <div style="padding:12px 24px 0;">
+        <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
+          <span id="themeLabel">🌙 Dark Mode</span>
+          <div class="theme-track"><div class="theme-thumb" id="themeThumb"></div></div>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-pill">
+          <div class="avatar" style="background:linear-gradient(135deg,#c864ff,#7b2fff);">{{ current_user.initials }}</div>
+          <div class="user-pill-text">
+            <div class="user-pill-name">{{ current_user.name }}</div>
+            <div class="user-pill-role" style="color:#c864ff;">Super Admin</div>
+          </div>
+          <button class="logout-btn" onclick="window.location='/logout'">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Parking Lots</h1>
+          <p>Manage all parking lots and their spots</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">+ Add New Lot</button>
+      </div>
+
+      <!-- Summary -->
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr); margin-bottom:24px;">
+        <div class="stat-card"><div class="stat-icon blue">🏢</div><div class="stat-value">{{ lots|length }}</div><div class="stat-label">Total Lots</div></div>
+        <div class="stat-card"><div class="stat-icon green">🅿️</div><div class="stat-value">{{ lots|sum(attribute='total_spots') }}</div><div class="stat-label">Total Spots</div></div>
+        <div class="stat-card"><div class="stat-icon amber">✅</div><div class="stat-value">{{ lots|sum(attribute='free_count') }}</div><div class="stat-label">Available Now</div></div>
+        <div class="stat-card"><div class="stat-icon pink">⚙️</div><div class="stat-value">{{ lots|selectattr('status','eq','active')|list|length }}</div><div class="stat-label">Active Lots</div></div>
+      </div>
+
+      <!-- Search / Filter -->
+      <div class="glass-panel">
+        <div style="display:flex; gap:12px; align-items:center;">
+          <div class="search-bar" style="flex:1;">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text-muted);flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search lot name, address, PIN code…" oninput="filterTable(this.value)"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lots Table -->
+      <div class="glass-panel">
+        <table class="data-table" id="lotsTable">
+          <thead>
+            <tr>
+              <th>Lot Name</th>
+              <th>Address / PIN</th>
+              <th>Type</th>
+              <th>Spots</th>
+              <th>Occupancy</th>
+              <th>Rate</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="lotsBody">
+            {% for lot in lots %}
+            {% set occ = lot.total_spots - lot.free_count %}
+            {% set occ_pct = ((occ / lot.total_spots) * 100)|int if lot.total_spots else 0 %}
+            {% set color = '#ff6b6b' if occ_pct >= 90 else ('#ffb400' if occ_pct >= 60 else '#00e887') %}
+            <tr>
+              <td><div style="font-weight:600;">{{ lot.name }}</div></td>
+              <td>
+                <div style="font-size:0.82rem;">{{ lot.address }}</div>
+                <div style="font-size:0.72rem; color:var(--text-muted);">PIN {{ lot.pin_code }}</div>
+              </td>
+              <td><span class="badge reserved">{{ lot.lot_type|title }}</span></td>
+              <td>
+                <div style="font-weight:600;">{{ lot.free_count }}
+                  <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">/ {{ lot.total_spots }}</span>
+                </div>
+              </td>
+              <td>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div style="flex:1; height:6px; background:rgba(255,255,255,0.08); border-radius:20px; overflow:hidden; min-width:60px;">
+                    <div style="height:100%; width:{{ occ_pct }}%; background:{{ color }}; border-radius:20px;"></div>
+                  </div>
+                  <span style="font-size:0.75rem; font-weight:600; color:{{ color }};">{{ occ_pct }}%</span>
+                </div>
+              </td>
+              <td style="font-weight:600; color:var(--accent);">₹{{ lot.rate_per_hour|int }}/hr</td>
+              <td>
+                {% if lot.status == 'active' %}<span class="badge available">Active</span>
+                {% else %}<span class="badge occupied">Inactive</span>{% endif %}
+              </td>
+              <td>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-ghost btn-sm btn-icon" title="Edit"
+                    onclick="openEditModal({{ lot.id }}, '{{ lot.name|e }}', '{{ lot.lot_type }}', '{{ lot.address|e }}', '{{ lot.pin_code }}', {{ lot.total_spots }}, {{ lot.rate_per_hour|int }}, '{{ lot.status }}')">✏️</button>
+                  <form action="/admin/lots/delete/{{ lot.id }}" method="POST" style="display:inline;"
+                    onsubmit="return confirm('Delete {{ lot.name|e }} and all its spots? This cannot be undone.')">
+                    <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Delete">🗑️</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:24px;">No parking lots found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Lot Modal -->
+  <div class="modal-overlay" id="lotModal" style="display:none;">
+    <div class="modal" style="max-width:540px; max-height:90vh; overflow-y:auto;">
+      <div class="modal-title" id="modalTitle">Add New Parking Lot</div>
+      <div class="modal-subtitle" id="modalSubtitle">Fill in the details to create a parking lot</div>
+
+      <form id="lotForm" action="/admin/lots/add" method="POST">
+        <input type="hidden" name="lot_id" id="f_lot_id" value=""/>
+        <div style="display:flex; flex-direction:column; gap:14px; margin-top:16px;">
+
+          <!-- Row 1: Name + Type -->
+          <div class="form-grid">
+            <div class="field">
+              <label>Lot Name</label>
+              <input type="text" name="name" placeholder="e.g. Central Parking Hub" id="f_name"/>
+            </div>
+            <div class="field">
+              <label>Type</label>
+              <select name="lot_type" id="f_type" onchange="onTypeChange(this.value)">
+                <option value="open">Open Lot</option>
+                <option value="covered">Covered</option>
+                <option value="multi-level">Multi-level</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Full Address -->
+          <div class="field">
+            <label>Full Address</label>
+            <input type="text" name="address" placeholder="Street, Area, City" id="f_address"/>
+          </div>
+
+          <!-- Row: PIN + Total Spots (hidden for multi-level) -->
+          <div class="form-grid">
+            <div class="field">
+              <label>PIN Code</label>
+              <input type="text" name="pin_code" placeholder="302001" id="f_pin"/>
+            </div>
+            <div class="field" id="totalSpotsField">
+              <label>Total Spots</label>
+              <input type="number" name="total_spots" placeholder="50" id="f_spots" min="1"/>
+            </div>
+          </div>
+
+          <!-- ── Multi-level section (shown only when type = multi-level) ── -->
+          <div id="multilevelSection" style="display:none; flex-direction:column; gap:12px;">
+
+            <!-- Divider -->
+            <div style="display:flex; align-items:center; gap:10px; margin:2px 0;">
+              <div style="flex:1; height:1px; background:var(--glass-border);"></div>
+              <span style="font-size:0.72rem; font-weight:600; color:var(--accent); letter-spacing:.8px; text-transform:uppercase;">Floor Configuration</span>
+              <div style="flex:1; height:1px; background:var(--glass-border);"></div>
+            </div>
+
+            <!-- Number of levels + auto-total -->
+            <div class="form-grid">
+              <div class="field">
+                <label>Number of Levels</label>
+                <input type="number" name="levels" id="f_levels" min="1" max="10" placeholder="e.g. 3"
+                       oninput="buildLevelInputs(this.value)"/>
+              </div>
+              <div class="field">
+                <label>Total Spots (calculated)</label>
+                <input type="number" id="f_total_calc" readonly placeholder="—"
+                       style="opacity:0.55; cursor:not-allowed; pointer-events:none;"/>
+              </div>
+            </div>
+
+            <!-- Dynamic per-level inputs -->
+            <div id="levelInputsContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+
+          </div>
+          <!-- ── End multi-level section ── -->
+
+          <!-- Rate + Status -->
+          <div class="form-grid">
+            <div class="field">
+              <label>Rate (₹/hr)</label>
+              <input type="number" name="rate_per_hour" placeholder="30" id="f_rate" min="0"/>
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select name="status" id="f_status">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+        <div style="display:flex; gap:12px; margin-top:20px;">
+          <button type="button" class="btn btn-ghost" style="flex:1;" onclick="closeLotModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="flex:1;" id="saveBtn">Save Lot</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /* ── Table filter ── */
+    function filterTable(q) {
+      document.querySelectorAll('#lotsBody tr').forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+      });
+    }
+
+    /* ── Multi-level form logic ── */
+    function onTypeChange(val) {
+      const isML = val === 'multi-level';
+      document.getElementById('totalSpotsField').style.display   = isML ? 'none' : '';
+      document.getElementById('multilevelSection').style.display = isML ? 'flex' : 'none';
+      // Clear multi-level fields when switching away
+      if (!isML) {
+        document.getElementById('f_levels').value = '';
+        document.getElementById('levelInputsContainer').innerHTML = '';
+        document.getElementById('f_total_calc').value = '';
+      }
+    }
+
+    function buildLevelInputs(n) {
+      n = Math.min(Math.max(parseInt(n) || 0, 0), 10);
+      const container = document.getElementById('levelInputsContainer');
+      // Preserve existing values when count changes
+      const existing = {};
+      container.querySelectorAll('input[type="number"]').forEach(inp => {
+        existing[inp.name] = inp.value;
+      });
+      container.innerHTML = '';
+      if (n < 1) { updateTotalCalc(); return; }
+
+      // Two-column grid for the level inputs
+      const grid = document.createElement('div');
+      grid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:10px;';
+
+      for (let i = 1; i <= n; i++) {
+        const field = document.createElement('div');
+        field.className = 'field';
+        const lbl = document.createElement('label');
+        lbl.textContent = `Level ${i} — No. of Spots`;
+        const inp = document.createElement('input');
+        inp.type        = 'number';
+        inp.name        = `spots_level_${i}`;
+        inp.placeholder = 'e.g. 20';
+        inp.min         = '1';
+        inp.style.cssText = 'width:100%;';
+        inp.value       = existing[`spots_level_${i}`] || '';
+        inp.addEventListener('input', updateTotalCalc);
+        field.appendChild(lbl);
+        field.appendChild(inp);
+        grid.appendChild(field);
+      }
+      container.appendChild(grid);
+
+      // Info note about naming
+      const note = document.createElement('p');
+      note.style.cssText = 'font-size:0.72rem; color:var(--text-muted); margin:2px 0 0;';
+      note.textContent = `Spots will be named L1-A-01, L1-A-02 … L2-A-01 … and so on per level.`;
+      container.appendChild(note);
+
+      updateTotalCalc();
+    }
+
+    function updateTotalCalc() {
+      let total = 0;
+      document.querySelectorAll('#levelInputsContainer input[type="number"]')
+        .forEach(inp => { total += parseInt(inp.value) || 0; });
+      document.getElementById('f_total_calc').value = total > 0 ? total : '';
+    }
+
+    /* ── Modal open / close ── */
+    function _resetMultilevel() {
+      document.getElementById('f_levels').value = '';
+      document.getElementById('levelInputsContainer').innerHTML = '';
+      document.getElementById('f_total_calc').value = '';
+      document.getElementById('multilevelSection').style.display = 'none';
+      document.getElementById('totalSpotsField').style.display  = '';
+    }
+
+    function openAddModal() {
+      document.getElementById('modalTitle').textContent    = 'Add New Parking Lot';
+      document.getElementById('modalSubtitle').textContent = 'Fill in the details to create a parking lot';
+      document.getElementById('lotForm').action = '/admin/lots/add';
+      document.getElementById('f_lot_id').value = '';
+      document.getElementById('f_name').value   = '';
+      document.getElementById('f_address').value = '';
+      document.getElementById('f_pin').value    = '';
+      document.getElementById('f_spots').value  = '';
+      document.getElementById('f_rate').value   = '';
+      document.getElementById('f_type').value   = 'open';
+      document.getElementById('f_status').value = 'active';
+      document.getElementById('saveBtn').textContent = 'Save Lot';
+      _resetMultilevel();
+      document.getElementById('lotModal').style.display = 'flex';
+    }
+
+    function openEditModal(id, name, type, address, pin, spots, rate, status) {
+      document.getElementById('modalTitle').textContent    = 'Edit: ' + name;
+      document.getElementById('modalSubtitle').textContent = 'Update the details for this parking lot';
+      document.getElementById('lotForm').action = '/admin/lots/edit/' + id;
+      document.getElementById('f_lot_id').value = id;
+      document.getElementById('f_name').value   = name;
+      document.getElementById('f_type').value   = type;
+      document.getElementById('f_address').value = address;
+      document.getElementById('f_pin').value    = pin;
+      document.getElementById('f_spots').value  = spots;
+      document.getElementById('f_rate').value   = rate;
+      document.getElementById('f_status').value = status;
+      document.getElementById('saveBtn').textContent = 'Save Changes';
+      // For multi-level edits just show total spots (level re-config not supported in edit)
+      _resetMultilevel();
+      document.getElementById('lotModal').style.display = 'flex';
+    }
+
+    function closeLotModal() {
+      document.getElementById('lotModal').style.display = 'none';
+    }
+
+    /* ── Theme ── */
+    function toggleTheme() {
+      var cur = document.documentElement.getAttribute('data-theme') || 'dark';
+      var nxt = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', nxt);
+      localStorage.setItem('pv_theme', nxt);
+      _syncTheme(nxt);
+    }
+    function _syncTheme(t) {
+      var label = document.getElementById('themeLabel');
+      var thumb = document.getElementById('themeThumb');
+      if (!label) return;
+      if (t === 'light') { label.textContent = '☀️ Light Mode'; thumb.style.transform = 'translateX(16px)'; }
+      else               { label.textContent = '🌙 Dark Mode';  thumb.style.transform = 'translateX(0)'; }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      _syncTheme(localStorage.getItem('pv_theme') || 'dark');
+    });
+  </script>
+</body>
+</html>
